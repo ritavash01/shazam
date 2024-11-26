@@ -47,10 +47,9 @@ nanobind_add_module(
   STABLE_ABI
 
   # Source code goes here
-  src/shazam/sb/tel.cpp
-  src/shazam/sb/frb.cpp
-  src/shazam/mb/tel.cpp
-  src/shazam/mb/frb.cpp
+  /mnt/disk1/data/Ritavash/shazam/src/shazam/sb/frb_buffer.cpp
+  /mnt/disk1/data/Ritavash/shazam/src/shazam/sb/frb_header.cpp
+
 )
 
 # Install directive for scikit-build-core
