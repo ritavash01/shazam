@@ -63,18 +63,18 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     int binend_block_loc = binend / total_bin_in_FRBblock;
     int binend_block_loc_cycle = binend_block_loc / 12 ; 
     int binend_bin_loc = binend % total_bin_in_FRBblock;
-    nBeams = BufRead->nBeams;
-    RecNum = dataBuffer_FRB->curRecord;
+    int nBeams = BufRead->nBeams;
+    int RecNum = dataBuffer_FRB->curRecord;
 
 
-if(0 =< RecNum - binbeg_block_loc < 12 ){
+if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
     // Calculate total size of data to retrieve
     size_t total_size = 0;
     for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
         if (block == binbeg_block_loc_cycle) {
-            total_size += DataSize - bin_size * binbeg_bin_loc_cycle; // Start block
+            total_size += DataSize - bin_size * binbeg_bin_loc; // Start block
         } else if (block == binend_block_loc_cycle) {
-            total_size += bin_size * binend_bin_loc_cycle; // End block
+            total_size += bin_size * binend_bin_loc; // End block
         } else {
             total_size += DataSize; // Full intermediate blocks
         }
@@ -93,10 +93,10 @@ if(0 =< RecNum - binbeg_block_loc < 12 ){
     for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
         size_t segment_size;
         if (block == binbeg_block_loc_cycle) {
-            segment_size = DataSize - bin_size * binbeg_bin_loc_cycle;
-            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams + (long)binbeg_bin_loc_cycle * bin_size, segment_size);
+            segment_size = DataSize - bin_size * binbeg_bin_loc;
+            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams + (long)binbeg_bin_loc * bin_size, segment_size);
         } else if (block == binend_block_loc_cycle) {
-            segment_size = bin_size * binend_bin_loc_cycle;
+            segment_size = bin_size * binend_bin_loc;
             memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams, segment_size);
         } else {
             segment_size = DataSize;
@@ -116,7 +116,8 @@ if(0 =< RecNum - binbeg_block_loc < 12 ){
 
     return result;
 }
-else{printf("Your data has been overwritten already")}  //Replace by better error messege
+else{printf("Your data has been overwritten already");
+    }  //Replace by better error messege
 
 NB_MODULE(your_module_name, m) {
     m.def("get_data_as_numpy_array", &get_data_as_numpy_array, "Retrieve data from shared memory as a NumPy array");
