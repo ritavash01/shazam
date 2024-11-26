@@ -1,0 +1,2 @@
+remote_path = "achilles:/home/upanda/soft/shazam"
+ignorefile_paths = ["~/.gitignore", ".gitignore"]
