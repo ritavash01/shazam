@@ -48,7 +48,7 @@ nanobind_add_module(
 
   # Source code goes here
   /mnt/disk1/data/Ritavash/shazam/src/shazam/sb/frb_buffer.cpp
-  /mnt/disk1/data/Ritavash/shazam/src/shazam/sb/frb_header.cpp
+  #/mnt/disk1/data/Ritavash/shazam/src/shazam/sb/frb_header.cpp
 
 )
 
