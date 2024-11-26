@@ -9,9 +9,6 @@
 
 namespace nb = nanobind;
 
-#ifndef SOFTCORR_H
-#define SOFTCORR_H
-
 #define DasBufferKey 2032
 #define NCHANNELS 4096
 #define NParallel 5
@@ -45,13 +42,13 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     
     if (idbuf < 0) {
         printf("Shared memory does not exist.\n");
-        return nb::ndarray<uint8_t>();
+        return nb::ndarray<uint8_t>::empty({0});
     }
     
     BufRead = (Buffer *)shmat(idbuf, nullptr, SHM_RDONLY);
     if (BufRead == (Buffer *)-1) {
         printf("Could not attach to shared memory.\n");
-        return nb::ndarray<uint8_t>();
+        return nb::ndarray<uint8_t>::empty({0});
     }
     
     // Define block and bin locations for the beginning and end of data
@@ -64,7 +61,7 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     int binend_block_loc_cycle = binend_block_loc / 12 ; 
     int binend_bin_loc = binend % total_bin_in_FRBblock;
     int nBeams = BufRead->nBeams;
-    int RecNum = dataBuffer_FRB->curRecord;
+    int RecNum = BufRead->curRecord;
 
 
 if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
@@ -94,7 +91,7 @@ if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
         size_t segment_size;
         if (block == binbeg_block_loc_cycle) {
             segment_size = DataSize - bin_size * binbeg_bin_loc;
-            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams + (long)binbeg_bin_loc * bin_size, segment_size);
+            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams + (long)(binbeg_bin_loc * bin_size), segment_size);
         } else if (block == binend_block_loc_cycle) {
             segment_size = bin_size * binend_bin_loc;
             memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams, segment_size);
@@ -111,8 +108,10 @@ if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
     size_t nf = NCHANNELS;
     size_t num_samples = total_size / nf;
 
-    // Wrap the buffer as a NumPy array with specified shape
-    nb::ndarray<uint8_t> result = nb::ndarray<uint8_t>(buffer, {nf, num_samples}, nb::capsule(buffer, free));
+    // Wrap the buffer as a NumPy array with specified shape, 
+    nb::capsule free_when_done(buffer, [](void *p) { free(p); });
+    nb::ndarray<uint8_t> result(buffer, {nf, num_samples}, free_when_done);
+
 
     return result;
 }
