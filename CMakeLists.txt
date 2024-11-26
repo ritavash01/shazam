@@ -39,7 +39,7 @@ find_package(nanobind CONFIG REQUIRED)
 # We are now ready to compile the actual extension module
 nanobind_add_module(
   # Name of the extension
-  FRB_buffer
+  frb_buffer
 
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
