@@ -42,13 +42,13 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     
     if (idbuf < 0) {
         printf("Shared memory does not exist.\n");
-        return nb::ndarray<uint8_t>::empty({0});
+        return nb::ndarray<uint8_t>();
     }
     
     BufRead = (Buffer *)shmat(idbuf, nullptr, SHM_RDONLY);
     if (BufRead == (Buffer *)-1) {
         printf("Could not attach to shared memory.\n");
-        return nb::ndarray<uint8_t>::empty({0});
+        return nb::ndarray<uint8_t>();
     }
     
     // Define block and bin locations for the beginning and end of data
@@ -118,7 +118,7 @@ if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
 else{printf("Your data has been overwritten already");
     }  //Replace by better error messege
 
-NB_MODULE(your_module_name, m) {
+NB_MODULE(frb_buffer, m) {
     m.def("get_data_as_numpy_array", &get_data_as_numpy_array, "Retrieve data from shared memory as a NumPy array");
 }
 }
