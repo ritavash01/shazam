@@ -94,6 +94,4 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     return nb::ndarray<uint8_t>(buffer, {nf, num_samples}, free_when_done);
 }
 
-NB_MODULE(internals, m) {
-    m.def("get_data_as_numpy_array", &get_data_as_numpy_array, "Retrieve data from shared memory as a NumPy array");
-}
+
