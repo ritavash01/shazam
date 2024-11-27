@@ -91,7 +91,7 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     nb::capsule free_when_done(buffer, [](void *p) noexcept { free(p); });
 
 
-    return nb::ndarray<uint8_t>(buffer, {nf, num_samples}, free_when_done)
+    return nb::ndarray<uint8_t>(buffer, {nf, num_samples}, free_when_done);
 }
 
 NB_MODULE(internals, m) {
