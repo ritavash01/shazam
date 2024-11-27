@@ -69,7 +69,7 @@ nb::dict initialize_HDR_SHM_py() {
     header_data["Beam_mode"] = std::string(beam_type[dataHdr_FRB->BeamGenHdr.BeamType[BeamID]]);
     header_data["No_of_stokes"] = dataHdr_FRB->BeamGenHdr.NStokes[BeamID];
     header_data["Num_bits_per_sample"] = dataHdr_FRB->BeamGenHdr.OutputDataFormat;
-
+/*
     // Antenna data processing
     char ant_list[30][4] = {
         "C00", "C01", "C02", "C03", "C04", "C05", "C06", "C08", "C09", "C10",
@@ -115,7 +115,7 @@ nb::dict initialize_HDR_SHM_py() {
         header_data["Pol2_mask"] = std::to_string(dataHdr_FRB->BeamGenHdr.GAC_vlt_maskP2[BeamID]);
         header_data["Pol2_antennas"] = pol2_antennas;
     }
-
+*/
     return header_data;
 }
 
