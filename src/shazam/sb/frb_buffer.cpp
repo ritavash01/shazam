@@ -38,87 +38,61 @@ typedef struct {
 nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     int idbuf;
     Buffer *BufRead;
+
+    // Attach to the shared memory
     idbuf = shmget(DasBufferKey, sizeof(Buffer), SHM_RDONLY);
-    
     if (idbuf < 0) {
-        printf("Shared memory does not exist.\n");
-        return nb::ndarray<uint8_t>();
+        throw std::runtime_error("Shared memory does not exist.");
     }
     
     BufRead = (Buffer *)shmat(idbuf, nullptr, SHM_RDONLY);
     if (BufRead == (Buffer *)-1) {
-        printf("Could not attach to shared memory.\n");
-        return nb::ndarray<uint8_t>();
+        throw std::runtime_error("Could not attach to shared memory.");
     }
-    
-    // Define block and bin locations for the beginning and end of data
+
+    // Calculate bin and block positions
     int binbeg = offset;
     int binend = count + offset; 
-    int binbeg_block_loc = binbeg / total_bin_in_FRBblock; //This will increment forever during the observation period and it is important for checking if SHM is overwritten
-    int binbeg_block_loc_cycle = binbeg_block_loc / 12 ; // This will cycle between 0 and 11
+    int binbeg_block_loc = binbeg / total_bin_in_FRBblock;
     int binbeg_bin_loc = binbeg % total_bin_in_FRBblock;
     int binend_block_loc = binend / total_bin_in_FRBblock;
-    int binend_block_loc_cycle = binend_block_loc / 12 ; 
     int binend_bin_loc = binend % total_bin_in_FRBblock;
-    int nBeams = BufRead->nBeams;
-    int RecNum = BufRead->curRecord;
 
-
-if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
-    // Calculate total size of data to retrieve
-    size_t total_size = 0;
-    for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
-        if (block == binbeg_block_loc_cycle) {
-            total_size += DataSize - bin_size * binbeg_bin_loc; // Start block
-        } else if (block == binend_block_loc_cycle) {
-            total_size += bin_size * binend_bin_loc; // End block
-        } else {
-            total_size += DataSize; // Full intermediate blocks
-        }
+    if (BufRead->curRecord - binbeg_block_loc < 0 || BufRead->curRecord - binbeg_block_loc >= MaxDataBlocks) {
+        shmdt(BufRead);
+        throw std::runtime_error("Data has been overwritten in shared memory.");
     }
 
-    // Allocate a temporary buffer to hold the data
+    // Calculate total size of data to retrieve
+    size_t total_size = (binend - binbeg) * bin_size;
     uint8_t *buffer = (uint8_t *)malloc(total_size);
     if (!buffer) {
-        printf("Memory allocation failed.\n");
         shmdt(BufRead);
-        return nb::ndarray<uint8_t>();
+        throw std::runtime_error("Memory allocation failed.");
     }
 
-    // Copy data into buffer
-    size_t offset = 0;
-    for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
-        size_t segment_size;
-        if (block == binbeg_block_loc_cycle) {
-            segment_size = DataSize - bin_size * binbeg_bin_loc;
-            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams + (long)(binbeg_bin_loc * bin_size), segment_size);
-        } else if (block == binend_block_loc_cycle) {
-            segment_size = bin_size * binend_bin_loc;
-            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams, segment_size);
-        } else {
-            segment_size = DataSize;
-            memcpy(buffer + offset, BufRead->data + (long)DataSize * block * NBeams, segment_size);
-        }
-        offset += segment_size;
+    // Copy data from shared memory
+    size_t offset_ptr = 0;
+    for (int block = binbeg_block_loc; block <= binend_block_loc; ++block) {
+        size_t start = (block == binbeg_block_loc) ? binbeg_bin_loc * bin_size : 0;
+        size_t end = (block == binend_block_loc) ? binend_bin_loc * bin_size : DataSize;
+        size_t segment_size = end - start;
+
+        memcpy(buffer + offset_ptr, BufRead->data + (long)block * DataSize + start, segment_size);
+        offset_ptr += segment_size;
     }
 
 
+    
 
-    // Determine dimensions for reshaping: here, `nf` (frequency channels) is defined as NCHANNELS
+    // Wrap buffer in an ndarray
     size_t nf = NCHANNELS;
     size_t num_samples = total_size / nf;
+    nb::capsule free_when_done(buffer, [](void *p) { free(p); });
 
-    // Wrap the buffer as a NumPy array with specified shape, 
-    // nb::capsule free_when_done(buffer, [](void *p) { free(p); });
-    nb::ndarray<uint8_t> result(buffer, {nf, num_samples}, free_when_done);
-
-
-    return result;
+    return nb::ndarray<uint8_t>(buffer, {nf, num_samples}, free_when_done);
 }
-else{printf("Your data has been overwritten already");
-    }  //Replace by better error messege
 
 NB_MODULE(internals, m) {
     m.def("get_data_as_numpy_array", &get_data_as_numpy_array, "Retrieve data from shared memory as a NumPy array");
-}
 }
