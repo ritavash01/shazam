@@ -88,27 +88,27 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
         if (binbeg_block_loc_cycle == binend_block_loc_cycle) {
             size_t segment_size = bin_size * (binend_bin_loc - binbeg_bin_loc);
             memcpy(temp_buffer + global_offset,
-                   BufRead->data + DataSize * binbeg_block_loc_cycle * nBeams + DataSize * beam + bin_size * binbeg_bin_loc,
+                   BufRead->data + (long)DataSize * binbeg_block_loc_cycle * nBeams + (long)DataSize * beam + (long)bin_size * binbeg_bin_loc,
                    segment_size);
             global_offset += segment_size;
         } else {
             for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
                 if (block == binbeg_block_loc_cycle) {
-                    size_t segment_size = DataSize - bin_size * binbeg_bin_loc;
+                    size_t segment_size = (long)DataSize - bin_size * binbeg_bin_loc;
                     memcpy(temp_buffer + global_offset,
-                           BufRead->data + DataSize * block * nBeams + DataSize * beam + bin_size * binbeg_bin_loc,
+                           BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam + (long)bin_size * binbeg_bin_loc,
                            segment_size);
                     global_offset += segment_size;
                 } else if (block == binend_block_loc_cycle) {
                     size_t segment_size = bin_size * binend_bin_loc;
                     memcpy(temp_buffer + global_offset,
-                           BufRead->data + DataSize * block * nBeams + DataSize * beam,
+                           BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam,
                            segment_size);
                     global_offset += segment_size;
                 } else {
-                    size_t segment_size = DataSize;
+                    size_t segment_size = (long)DataSize;
                     memcpy(temp_buffer + global_offset,
-                           BufRead->data + DataSize * block * nBeams + DataSize * beam,
+                           BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam,
                            segment_size);
                     global_offset += segment_size;
                 }
