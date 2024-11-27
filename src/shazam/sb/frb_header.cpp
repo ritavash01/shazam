@@ -130,4 +130,6 @@ nb::dict initialize_HDR_SHM_py() {
 // Define the nanobind module
 NB_MODULE(internals, m) {
     m.def("initialize_HDR_SHM_py", &initialize_HDR_SHM_py, "Initialize shared memory and retrieve header data");
+    
+    m.def("get_data_as_numpy_array", &get_data_as_numpy_array, "Retrieve data from shared memory as a NumPy array");
 }
