@@ -49,6 +49,14 @@ nb::dict initialize_HDR_SHM_py() {
         fprintf(stderr, "GTAC code not found in ScanTab.\n");
         return nb::dict();
     }
+     // Antenna data processing
+    char ant_list[30][4] = {
+        "C00", "C01", "C02", "C03", "C04", "C05", "C06", "C08", "C09", "C10",
+        "C11", "C12", "C13", "C14", "E02", "E03", "E04", "E05", "E06", "S01",
+        "S02", "S03", "S04", "S06", "W01", "W02", "W03", "W04", "W05", "W06"
+    };
+    char beam_type[7][6]={"IA", "PA", "VLT", "PC", "CDP", "PASV","MISC"};
+
 
     // Populate dictionary with header data
     header_data["GTAC_code"] = std::string(Scan->proj.code);
