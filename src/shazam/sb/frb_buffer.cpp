@@ -109,7 +109,7 @@ if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
     size_t num_samples = total_size / nf;
 
     // Wrap the buffer as a NumPy array with specified shape, 
-    nb::capsule free_when_done(buffer, [](void *p) { free(p); });
+    // nb::capsule free_when_done(buffer, [](void *p) { free(p); });
     nb::ndarray<uint8_t> result(buffer, {nf, num_samples}, free_when_done);
 
 
@@ -118,7 +118,7 @@ if(RecNum - binbeg_block_loc >= 0 && RecNum - binbeg_block_loc < 12){
 else{printf("Your data has been overwritten already");
     }  //Replace by better error messege
 
-NB_MODULE(frb_buffer, m) {
+NB_MODULE(internals, m) {
     m.def("get_data_as_numpy_array", &get_data_as_numpy_array, "Retrieve data from shared memory as a NumPy array");
 }
 }
