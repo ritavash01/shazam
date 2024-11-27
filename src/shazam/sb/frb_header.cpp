@@ -10,7 +10,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <nanobind/nanobind.h>
-#include <nanobind/stl.h> 
+#include <nanobind/stl/string.h>
 #define DasHeaderKey 2031
 
 BeamHeaderType *dataHdr_FRB;
