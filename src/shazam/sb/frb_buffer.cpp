@@ -12,7 +12,7 @@ namespace nb = nanobind;
 #define DasBufferKey 2032
 #define NCHANNELS 4096
 #define NParallel 5
-#define NSerial 2
+#define NSerial 10
 #define BITREDUCTION 2
 #define NBeams (NParallel * NSerial)
 #define FFT_Samps_per_Block 800
@@ -33,7 +33,7 @@ typedef struct {
     unsigned char data[(long)NBeams * (long)(DataSize) * (long)(MaxDataBlocks)];
 } Buffer;
 
-nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
+nb::ndarray<nb::numpy, uint8_t, nb::shape<-1, -1, -1>> get_data_as_numpy_array(int count, int offset) {
     // Attach to shared memory
     int idbuf = shmget(DasBufferKey, sizeof(Buffer), SHM_RDONLY);
     if (idbuf < 0) {
@@ -56,68 +56,81 @@ nb::ndarray<uint8_t> get_data_as_numpy_array(int count, int offset) {
     int binend_bin_loc = binend % total_bin_in_FRBblock;
 
     int nBeams = BufRead->nBeams;
-    size_t total_data_size = 0;
+   
 
-    // Calculate total size for all beams
-    for (int beam = 0; beam < nBeams; ++beam) {
-        if (binbeg_block_loc_cycle == binend_block_loc_cycle) {
-            total_data_size += bin_size * (binend_bin_loc - binbeg_bin_loc);
-        } else {
-            for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
-                if (block == binbeg_block_loc_cycle) {
-                    total_data_size += DataSize - bin_size * binbeg_bin_loc;
-                } else if (block == binend_block_loc_cycle) {
-                    total_data_size += bin_size * binend_bin_loc;
-                } else {
-                    total_data_size += DataSize;
-                }
-            }
-        }
-    }
-        
-    // Allocate temporary buffer
-    uint8_t* temp_buffer = static_cast<uint8_t*>(malloc(total_data_size));
-    if (!temp_buffer) {
-        throw std::bad_alloc();
-    }
-
-    size_t global_offset = 0;
-
-    // Extract data for each beam
-    for (int beam = 0; beam < nBeams; ++beam) {
-        if (binbeg_block_loc_cycle == binend_block_loc_cycle) {
-            size_t segment_size = bin_size * (binend_bin_loc - binbeg_bin_loc);
-            memcpy(temp_buffer + global_offset,
-                   BufRead->data + (long)DataSize * binbeg_block_loc_cycle * nBeams + (long)DataSize * beam + (long)bin_size * binbeg_bin_loc,
-                   segment_size);
-            global_offset += segment_size;
-        } else {
-            for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
-                if (block == binbeg_block_loc_cycle) {
-                    size_t segment_size = (long)DataSize - bin_size * binbeg_bin_loc;
-                    memcpy(temp_buffer + global_offset,
-                           BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam + (long)bin_size * binbeg_bin_loc,
-                           segment_size);
-                    global_offset += segment_size;
-                } else if (block == binend_block_loc_cycle) {
-                    size_t segment_size = bin_size * binend_bin_loc;
-                    memcpy(temp_buffer + global_offset,
-                           BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam,
-                           segment_size);
-                    global_offset += segment_size;
-                } else {
-                    size_t segment_size = (long)DataSize;
-                    memcpy(temp_buffer + global_offset,
-                           BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam,
-                           segment_size);
-                    global_offset += segment_size;
-                }
+    // Calculate total size for all beams (This will give me the size of the temporary buffer to whole the total data)
+ 
+    size_t total_data_size_per_beam = 0;
+    if (binbeg_block_loc_cycle == binend_block_loc_cycle) {
+        total_data_size_per_beam += bin_size * (binend_bin_loc - binbeg_bin_loc);
+    } else {
+        for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
+            if (block == binbeg_block_loc_cycle) {
+                total_data_size_per_beam += DataSize - bin_size * binbeg_bin_loc;
+            } else if (block == binend_block_loc_cycle) {
+                total_data_size_per_beam += bin_size * binend_bin_loc;
+            } else {
+                total_data_size_per_beam += DataSize;
             }
         }
     }
 
-    // Create ndarray
-    size_t num_samples = total_data_size / (NCHANNELS * nBeams);
+   //Reshaping the data
+   size_t nt = total_data_size_per_beam / NCHANNELS; // Number of time samples
+    if (nt * NCHANNELS != total_data_size_per_beam) {
+        throw std::runtime_error("Data size is not evenly divisible by nf");
+    }
+   // Total data size for all beams
+    size_t total_data_size = nBeams * total_data_size_per_beam;
+
+// Allocate buffer for all beams
+uint8_t* temp_buffer = (uint8_t*)malloc(total_data_size);
+if (!temp_buffer) {
+    throw std::runtime_error("Memory allocation failed");
+}
+
+// Extract data for each beam and store in its section of the buffer
+size_t global_offset = 0;
+for (int beam = 0; beam < nBeams; ++beam) {
+    size_t beam_offset = global_offset;
+
+    if (binbeg_block_loc_cycle == binend_block_loc_cycle) {
+        size_t segment_size = bin_size * (binend_bin_loc - binbeg_bin_loc);
+        memcpy(temp_buffer + beam_offset,
+               BufRead->data + (long)DataSize * binbeg_block_loc_cycle * nBeams + (long)DataSize * beam + (long)bin_size * binbeg_bin_loc,
+               segment_size);
+        global_offset += segment_size;
+    } else {
+        for (int block = binbeg_block_loc_cycle; block <= binend_block_loc_cycle; ++block) {
+            if (block == binbeg_block_loc_cycle) {
+                size_t segment_size = (long)DataSize - bin_size * binbeg_bin_loc;
+                memcpy(temp_buffer + beam_offset,
+                       BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam + (long)bin_size * binbeg_bin_loc,
+                       segment_size);
+                beam_offset += segment_size;
+            } else if (block == binend_block_loc_cycle) {
+                size_t segment_size = bin_size * binend_bin_loc;
+                memcpy(temp_buffer + beam_offset,
+                       BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam,
+                       segment_size);
+                beam_offset += segment_size;
+            } else {
+                size_t segment_size = (long)DataSize;
+                memcpy(temp_buffer + beam_offset,
+                       BufRead->data + (long)DataSize * block * nBeams + (long)DataSize * beam,
+                       segment_size);
+                beam_offset += segment_size;
+            }
+        }
+    }
+}
+
+
+ // Define shape for 3D ndarray
+    size_t shape[3] = {nBeams, nt, NCHANNELS};
+
+    // Create the ndarray
     nb::capsule free_when_done(temp_buffer, [](void* p) noexcept { free(p); });
-    return nb::ndarray<uint8_t>(temp_buffer, {nBeams, NCHANNELS, num_samples}, free_when_done);
+    return nb::ndarray<nb::numpy, std::uint8_t, nb::shape<-1, -1, -1>>(
+        temp_buffer, 3, shape, free_when_done);
 }
