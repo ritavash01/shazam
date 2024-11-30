@@ -19,7 +19,7 @@ BeamHeaderType *dataHdr_FRB;
  // we need to provide an argument for gtac code, but I am leaving it for now
 
 
-
+char *gtac_code; 
 
 namespace nb = nanobind;
 
@@ -45,7 +45,7 @@ nb::dict initialize_HDR_SHM_py() {
             break;
         }
     }
-    char *gtac_code = "TEST" ;
+    
     if (Scan == nullptr) {
         fprintf(stderr, "GTAC code not found in ScanTab.\n");
         return nb::dict();
