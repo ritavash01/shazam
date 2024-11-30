@@ -11,7 +11,7 @@ namespace nb = nanobind;
 
 #define DasBufferKey 2032
 #define NCHANNELS 4096
-#define NParallel 5
+#define NParallel 10
 #define NSerial 10
 #define BITREDUCTION 2
 #define NBeams (NParallel * NSerial)
@@ -77,7 +77,7 @@ nb::ndarray<nb::numpy, uint8_t, nb::shape<-1, -1, -1>> get_data_as_numpy_array(i
 
    //Reshaping the data
    size_t nt = total_data_size_per_beam / NCHANNELS; // Number of time samples
-    if (nt * NCHANNELS != total_data_size_per_beam) {
+    if (nt * NCHANNELS = total_data_size_per_beam) {
         throw std::runtime_error("Data size is not evenly divisible by nf");
     }
    // Total data size for all beams
